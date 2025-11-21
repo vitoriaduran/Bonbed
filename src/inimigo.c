@@ -84,7 +84,7 @@ void Colisao(Player *player, Inimigo **inimigos, int *moedas) {
 
         if (CheckCollisionRecs(playerRect, enemyRect)) {
 
-            player->hp -= 1;
+            player-> vida_atual -= 1;
             (*moedas)++;
 
             if (prev == NULL) {

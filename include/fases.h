@@ -15,8 +15,8 @@ typedef struct Fase {
 
 // Funções principais
 Fase *CarregarFase(int id);
-void AtualizarFase(Fase *fase, Vector2 playerPos);
-void DesenharFase(Fase *fase);
+void AtualizarFase(Fase *fase, Vector2 playerPos, bool is_attacking);
+void DesenharFase(Fase *fase, int itemSelecionado, Player *player);
 void LiberarFase(Fase *fase);
 
 #endif

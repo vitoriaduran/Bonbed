@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "raylib.h"
 
+//falta a logica das novas fases que esta no grupo
 Fase *CarregarFase(int id) {
     Fase *fase = malloc(sizeof(Fase));
     fase->id = id;
@@ -34,22 +35,41 @@ Fase *CarregarFase(int id) {
     return fase;
 }
 
-void AtualizarFase(Fase *fase, Vector2 playerPos) {
+void AtualizarFase(Fase *fase, Vector2 playerPos, bool is_attacking) {
     if (fase == NULL){
         return;
 
     }
-  
+    // Define se a fase atual é de combate (não é a Loja)
+    bool fase_combate = ( fase->id != 2);
 
-    mov_inimigos(fase->inimigos, playerPos);
+    if (fase_combate) {
+        // (Isso evita que inimigos ataquem durante a animação de ataque/cooldown do jogador)
+        if (!is_attacking) {
 
-    // Exemplo de condição para "terminar" a fase
-    if (playerPos.x > 750) {
-        fase->concluida = true;
+            mov_inimigos(fase->inimigos, playerPos); 
+        }
+    }
+
+    if (fase_combate) {
+    
+        // A fase está concluída se a lista de inimigos estiver vazia.
+        if (fase->inimigos == NULL) {
+            fase->concluida = true;
+        }
+
+    } else {
+        // Condição para fases de PASSAGEM (Ex: Loja, id=2):
+        // A fase está concluída se o jogador atingir a área de saída (lado direito da tela).
+        
+        if (playerPos.x > 750) { 
+
+            fase->concluida = true;
+        }
     }
 }
 
-void DesenharFase(Fase *fase) {
+void DesenharFase(Fase *fase, int ItemSelecionado, Player *player) {
     if (fase == NULL){
         return;
 

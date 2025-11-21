@@ -1,5 +1,4 @@
 #include <raylib.h>
-#include<game.h>
 
 typedef struct protagonista{
     Vector2 position;
@@ -18,13 +17,8 @@ typedef struct protagonista{
 } protagonista;
 
 
-
-
-
 int main() {
 
-
-    InitWindow(800, 600, "Bonded - MVP");
 
     const int screenWidth = 800;
     const int screenHeight = 600;
@@ -34,31 +28,34 @@ int main() {
     InitAudioDevice();
     SetTargetFPS(60);
 
-    Vector2  posicao_protagonista= { (float)screenWidth/2, (float)screenHeight/2 };
     
-    Game *game = InitGame();
+    protagonista player = {
+        .position = { screenWidth/2.0f, screenHeight/2.0f },
+        .speed = 2.0f,
+        .vidas = 3,
+        .moedas = 0,
+        .forca = 1,
+        .frame_atual = 0,
+        .contador_frames = 0,
+        .loop_frames = 4,
+        .frames_por_loop = 8,
+        .movimento = false
+    };
 
     while (!WindowShouldClose()) {
-        UpdateGame(game);
 
-        if (game->gameOver && IsKeyPressed(KEY_ENTER)) {
-            Liberar_Game(game);
-            game = InitGame();
-        }
-
-        if (IsKeyDown(KEY_RIGHT)) posicao_protagonista.x += 2.0f;
-        if (IsKeyDown(KEY_LEFT)) posicao_protagonista.x -= 2.0f;
-        if (IsKeyDown(KEY_UP)) posicao_protagonista.y -= 2.0f;
-        if (IsKeyDown(KEY_DOWN)) posicao_protagonista.y += 2.0f;
+        if (IsKeyDown(KEY_RIGHT)) player.position.x += 2.0f;
+        if (IsKeyDown(KEY_LEFT)) player.position.x -= 2.0f;
+        if (IsKeyDown(KEY_UP)) player.position.y -= 2.0f;
+        if (IsKeyDown(KEY_DOWN)) player.position.y += 2.0f;
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        Desenho_Game(game);
-        DrawCircleV(posicao_protagonista, 50, RED);
+        DrawText("Bonded - MVP", 10, 10, 20, BLACK);
+        DrawCircleV(player.position, 50, RED);
         EndDrawing();
     }
 
-    Liberar_Game(game);
     CloseAudioDevice();
     CloseWindow();
     return 0;

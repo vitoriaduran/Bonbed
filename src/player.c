@@ -7,10 +7,25 @@
 Player *CriarPlayer() {
     Player *p = malloc(sizeof(Player));
 
+    if (!p){
+        return NULL;
+    }
+    
+    p -> vida_maxima = 100;
+    p -> vida_atual = 100;
+    p -> moedas = 150; //150 p/ testar a loja
+    p -> ataque = 10;
+    p -> chance_critica = 5; // 5% base
+
+    p ->dano_aplicado = 0;
+    p ->duracao_ataque = 0;
+    p->armaHitbox = (Rectangle){0, 0, 40, 40};
+
+    p->arma = LoadTexture("assets/sword.png"); //tem que colocar
+
     p->frameWidth  = 64;   // Ajuste para o tamanho REAL da sua sprite
     p->frameHeight = 64;
-
-    p->estadoAtual = IDLE;
+    p->estado_atual = ESTADO_IDLE;
     p->currentFrame = 0;
     p->contador_frames = 0;
     p->velocidade_frames = 6;
@@ -18,86 +33,110 @@ Player *CriarPlayer() {
 
     p->pos = (Vector2){400, 300};
     p->velocidade = 240.0f;
-    p->hp = 5;
 
-    p->spritesheet = LoadTexture("assets/player.png");
-    p->arma = LoadTexture("assets/sword.png");
-
-    p->ataque = 0;
-    p->armaHitbox = (Rectangle){p->pos.x + 20, p->pos.y, 40, 40};
-
+    p->spritesheet = LoadTexture("assets/player.png"); //tem que colocar
     p->frameRec = (Rectangle){0, 0, p->frameWidth, p->frameHeight};
+
     return p;
 }
 
 void UpdatePlayer(Player *p) {
-    Vector2 movimento = {0, 0};
+    
+    if (p->vida_atual <= 0) {
 
-    // WASD
-    if (IsKeyDown(KEY_D)) movimento.x = 1;
-    else if (IsKeyDown(KEY_A)) movimento.x = -1;
-
-    if (IsKeyDown(KEY_S)) movimento.y = 1;
-    else if (IsKeyDown(KEY_W)) movimento.y = -1;
-
-    // Movimento
-    if (movimento.x != 0 || movimento.y != 0) {
-        movimento = Vector2Normalize(movimento);
-        p->pos.x += movimento.x * p->velocidade * GetFrameTime();
-        p->pos.y += movimento.y * p->velocidade * GetFrameTime();
+        return;
     }
 
-    // Atualizar hitbox da arma
-    p->armaHitbox.x = p->pos.x + 20;
-    p->armaHitbox.y = p->pos.y;
+    Vector2 movimento = {0, 0};
+    float dt = GetFrameTime();
 
-    // Direção da animação
-    float stateY = 0.0f;
+    // Movimento é bloqueado se o ataque estiver ativo
+    if (p->duracao_ataque == 0) {
 
+        if (IsKeyDown(KEY_D)) movimento.x = 1;
+        else if (IsKeyDown(KEY_A)) movimento.x = -1;
+
+        if (IsKeyDown(KEY_S)) movimento.y = 1;
+        else if (IsKeyDown(KEY_W)) movimento.y = -1;
+    }
+    
+    // Aplica movimento
     if (movimento.x != 0 || movimento.y != 0) {
-        p->estadoAtual = WALK_DOWN;
+
+        movimento = Vector2Normalize(movimento);
+        p->pos.x += movimento.x * p->velocidade * dt;
+        p->pos.y += movimento.y * p->velocidade * dt;
+    }
+
+    // --- LÓGICA DE ESTADO E ANIMAÇÃO ---
+    if (p->duracao_ataque > 0) {
+
+        p->estado_atual = ESTADO_ATACANDO;
+        p->duracao_ataque--; // Diminui a duração do ataque
+        p->MAX_frames = 3; 
+
+    } else if (movimento.x != 0 || movimento.y != 0) {
+        // Estado de Andar
         p->MAX_frames = 4;
 
         if (fabs(movimento.y) > fabs(movimento.x)) {
-            if (movimento.y < 0) stateY = 1.0f;   // UP
-            else stateY = 0.0f;                  // DOWN
+            if (movimento.y < 0) p->estado_atual = ESTADO_WALK_UP;
+            else p->estado_atual = ESTADO_WALK_DOWN;
         } else {
-            if (movimento.x < 0) stateY = 2.0f;  // LEFT
-            else stateY = 3.0f;                  // RIGHT
+            if (movimento.x < 0) p->estado_atual = ESTADO_WALK_LEFT;
+            else p->estado_atual = ESTADO_WALK_RIGHT;
         }
-
-    } else {
-        p->estadoAtual = IDLE;
-        stateY = 0.0f;
-        p->MAX_frames = 4;
+    } 
+    else {
+        // Estado IDLE
+        p->estado_atual = ESTADO_IDLE;
+        p->MAX_frames = 4; 
     }
-
-    // Controle de FPS da animação
+    
+    // --- CONTROLE DE FRAMES ---
     p->contador_frames++;
+
     if (p->contador_frames >= (60 / p->velocidade_frames)) {
+
         p->contador_frames = 0;
         p->currentFrame++;
 
-        if (p->currentFrame >= p->MAX_frames)
+        if (p->currentFrame >= p->MAX_frames) {
             p->currentFrame = 0;
+        }
     }
 
+    // Atualiza o recorte da sprite com base no estado e frame
     p->frameRec.x = (float)p->currentFrame * p->frameWidth;
-    p->frameRec.y = stateY * p->frameHeight;
+    p->frameRec.y = (float)p->estado_atual * p->frameHeight;
 
-    // Ataque
-    if (IsKeyPressed(KEY_SPACE))
+    // --- ATAQUE (ATIVAÇÃO) ---
+    if (IsKeyPressed(KEY_SPACE) && p->duracao_ataque == 0) {
+
         Ataque(p);
+    }
+    
+    // Atualiza a hitbox da arma
+    p->armaHitbox.x = p->pos.x + 30;
+    p->armaHitbox.y = p->pos.y;
 
-    if (p->ataque > 0)
-        p->ataque--;
 }
 
 void Ataque(Player *p) {
-    p->ataque = 10; // duração em frames
+
+    p->ataque = 15; // duração em frames
+    p ->currentFrame = 0;
+
+    p ->dano_aplicado = p->ataque;
+
+    if (GetRandomValue(1, 100) <= p->chance_critica){
+
+        p -> dano_aplicado *=2; //dobra o dano
+    }
 }
 
 void Desenho_player(Player *p) {
+    
     DrawTextureRec(
         p->spritesheet,
         p->frameRec,
@@ -106,9 +145,10 @@ void Desenho_player(Player *p) {
     );
 
     // Desenhar arma se estiver atacando
-    if (p->ataque > 0) {
+    if (p->duracao_ataque > 0) {
+
         DrawTextureV(
-            p->arma,
+            p -> arma,
             (Vector2){p->pos.x + 30, p->pos.y},
             WHITE
         );
@@ -120,7 +160,7 @@ void Desenho_player(Player *p) {
 
 void Liberar_player(Player *p) {
     UnloadTexture(p->spritesheet);
-    UnloadTexture(p->arma);
+    UnloadTexture(p ->arma);
     free(p);
 }
 
